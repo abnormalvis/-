@@ -1,25 +1,25 @@
-/* Timer0.c */
-#include <REG52.H>
+#include <REG52.H>  
+#include "Timer1.h"
 #include "Timer0.h"
-#include "stdint.h"
-
-volatile uint32_t SystemTick = 0; // 系统时间基准
-void Timer0Init(void)
+typedef unsigned int uint32_t;
+volatile uint32_t SystemTick = 0;
+#ifndef _TIMER1_H_
+#define _TIMER1_H_ 
+#endif
+void Timer0_Init(void)
 {
-    TMOD &= 0xF0;       // 清除T0配置
-    TMOD |= 0x01;       // 设置T0为模式1（16位定时器）
-    TH0 = 0xFC;         // 设置定时初值高字节
-    TL0 = 0x18;         // 设置定时初值低字节
-    TF0 = 0;            // 清除溢出标志
-    TR0 = 1;            // 启动定时器0
-    ET0 = 1;            // 使能T0中断
-    EA = 1;             // 全局中断使能
-    PT0 = 0;            // 设置低优先级
+    TMOD &= 0xF0;       // Clear T0 config
+    TMOD |= 0x01;       // Mode 1 (16-bit)
+    TH0 = 0xFC;         // 1ms @11.0592MHz
+    TL0 = 0x18;
+    ET0 = 1;            // Enable interrupt
+    TR0 = 1;            // Start timer
+    EA = 1;             // Global enable
 }
 
-void Timer0_Routine(void) interrupt 1
+void Timer0_ISR(void) interrupt 1 using 1 // 使用寄存器组1
 {
-    TH0 = 0xFC;         // 重装初值高字节
-    TL0 = 0x18;         // 重装初值低字节
-    SystemTick++;       // 系统时钟递增
+    TH0 = 0xFC;         // Reload values
+    TL0 = 0x18;
+    SystemTick++;       // Update system tick
 }
