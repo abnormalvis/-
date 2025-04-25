@@ -1,249 +1,192 @@
-#include <RTX51TNY.h>
-#include "Systemstate.h"
-#include "Beep.h"
-#include "Game.h"
-#include "Key.h"
-#include "AT24C1024B.h"
-#include "oled12864.h"
-#include "menu.h"
+#include <REG52.H>
+// #include <rtx51tny.h>
 #include "Delay.h"
-#include "stdint.h"
-#include "Timer1.h"
+#include "note.h"
+#include "oled.h"
+#include "oledfont.h"
+#include "key.h"
 #include "Timer0.h"
-#include "stdbool.h"
-#include "Beep.h"
-#include "Musictable.h"
+#include "Timer1.h"
+#include "music.h"
+#include "systemstate.h"
+#include <rtx51tny.h>
 
-// 任务优先级定义
-#define TASK_OLED 1
-#define TASK_GAME 2
-#define TASK_INPUT 3
-#define TASK_AUDIO 4
+extern void os_evt_set(unsigned int event_flags, unsigned char task_id);
+extern void os_evt_wait_or(unsigned int event_flags, unsigned int timeout);
+// extern void os_start();
+volatile unsigned char x_position = 119; // 音符初始位置
+volatile unsigned char speed = 6;        // 音符移动速度
+// 在main.c的include区域添加
+void System_Init(void);      // 系统初始化函数
+void Key_Scan_Delay(u16 ms); 
 
-// 全局信号定义
-#define SIG_INPUT 0x01             // 0x01
-#define SIG_GAME_UPDATE 0x02       // 0x02
-#define SIG_OLED_REFRESH 0x04      // 0x04
-
-/*
-定义一个用于处理用户处于菜单页面时的按键输入
-*/
-void Menu_HandleInput(unsigned char key)
+void main()
 {
-    switch (menu.current_page)
+    u8 i;
+    OLED_Init(); 
+    OLED_Clear(); 
+    
+    while(1)
     {
-    case MENU_MAIN:            // 主菜单
-        if (key == KEY_TRACK1) // 上移选中项
-        {
-            if (menu.selected_item > 0)
-                menu.selected_item--;
-        }
-        else if (key == KEY_TRACK2) // 下移选中项
-        {
-            if (menu.selected_item < menu.max_items - 1)
-                menu.selected_item++;
-        }
-        else if (key == KEY_CONFIRM) // 确认选中项
-        {
-            switch (menu.selected_item)
-            {
-            case 0: // 进入游戏
-                Menu_TransitionTo(MENU_PLAY);
-                break;
-            case 1: // 设置
-                Menu_TransitionTo(MENU_SETTINGS);
-                break;
-            case 2: // 帮助
-                OLED_Clear();
-                OLED_ShowString(0, 0, "Help: Use keys");
-                OLED_ShowString(0, 2, "to navigate.");
-                OLED_Refresh();
-                Delay(2000); // 显示帮助信息2秒
-                break;
-            case 3: // 退出
-                OLED_Clear();
-                OLED_ShowString(0, 0, "Exiting...");
-                OLED_Refresh();
-                Delay(1000);
-                SystemState_Transition(SYSTEM_MENU);
-                break;
-            }
-        }
-        break;
+        // 测试1：显示字符和字符串
+        OLED_ShowChar(0, 0, 'A', 16); // 16号字体
+        OLED_ShowString(20, 0, "Hello OLED", 16);
+        OLED_ShowString(0, 3, "Test Program", 16);
+        OLED_Refresh();
+        Delay(2000);
+        OLED_Clear();
 
-    case MENU_SETTINGS:                             // 设置菜单
-        if (key == KEY_TRACK1 || key == KEY_TRACK2) // 切换语言
-        {
-            menu.language = (menu.language == 1) ? 2 : 1; // 1: EN  2: CN
+        // 测试2：显示数字
+        OLED_ShowNum(0, 0, 123456, 6, 16);
+        OLED_ShowString(0, 2, "Count:", 16);
+        for(i=0; i<100; i++){
+            OLED_ShowNum(60, 2, i, 3, 16);
+            OLED_Refresh();
+            Delay(100);
         }
-        else if (key == KEY_CONFIRM) // 返回主菜单
-        {
-            Menu_TransitionTo(MENU_MAIN);
-        }
-        break;
+        OLED_Clear();
 
-    case MENU_PLAY:            // 游戏菜单
-        if (key == KEY_TRACK1) // 上移选中项
-        {
-            if (menu.selected_item > 0)
-                menu.selected_item--;
-        }
-        else if (key == KEY_TRACK2) // 下移选中项
-        {
-            if (menu.selected_item < menu.max_items - 1)
-                menu.selected_item++;
-        }
-        else if (key == KEY_CONFIRM) // 确认选中项
-        {
-            if (menu.selected_item < MAX_SONG_NUM) // 选择歌曲
-            {
-                menu.song_selection = menu.selected_item;
-                Game_Start(menu.song_selection); // 开始游戏
-                PlayMusic();                     // 播放音乐
-                SystemState_Transition(SYSTEM_GAMEPLAY);
-            }
-            else // 返回主菜单
-            {
-                Menu_TransitionTo(MENU_MAIN);
-            }
-        }
-        break;
+        // 测试3：绘制图形
+        OLED_DrawPoint(64, 32, 1); // 中心点
+        OLED_Fill(10, 10, 30, 30, 1); // 填充矩形
+        OLED_Refresh();
+        Delay(2000);
+        OLED_Clear();
 
-    default:
-        break;
-    }
-
-    // 刷新菜单显示
-    Menu_Display();
-}
-// 系统初始化
-void System_Init(void)
-{
-    FreqSelect = 0;
-    EA = 0;                           // 禁用中断
-    Timer0Init();                     // 初始化定时器0（系统时钟）
-    Timer1Init();                     // 初始化定时器1（音乐播放）
-    OLED_Init();                      // 初始化OLED显示屏
-    AT24C1024_Write(0x0000, NULL, 0); // 初始化存储芯片（如有必要）
-    Menu_Init();                      // 初始化菜单
-    Game_Init();                      // 初始化游戏
-    EA = 1;                           // 启用中断
-}
-
-// OLED 刷新任务
-void Task_OLED(void) _task_ TASK_OLED
-{
-    while (1)
-    {
-        os_wait1(0); // 等待任务信号
-        if (signal_flags & SIG_OLED_REFRESH)
-        {                                      // 如果有信号标志，刷新 OLED 显示缓冲区
-            signal_flags &= ~SIG_OLED_REFRESH; // 清除信号标志  将signal_flags与oled刷新信号取反的结果作与运算 将信号标志位清零
-            Menu_Display();                    // 刷新菜单显示
-            OLED_Refresh();                    // 刷新 OLED 显示缓冲区
-        }
+        // 测试4：滚动显示
+        OLED_ShowString(0, 0, "Scroll Test", 16);
+        OLED_Refresh();
+        Delay(1000);
+        OLED_roll(1, 3); // 开启水平滚动
+        Delay(3000);
+        OLED_roll(0, 0); // 关闭滚动
+        OLED_Clear();
     }
 }
 
-// 按键输入任务  用于检测用户的按键交互信息
-void Task_Input(void) _task_ TASK_INPUT
-{
-    uint8_t key; // 获取当前按键值
-    while (1)
-    {
-        os_wait1(0); // 等待任务信号
-        if (signal_flags & SIG_INPUT)
-        {                               // 信号标志位与0x01进行与运算，如果结果为真，说明有按键输入
-            signal_flags &= ~SIG_INPUT; // 清除信号标志
-            key = Get_Key();            // 获取按键值
+// void main()
+// {
+    // System_Init();
+    // while (1)
+    // {
+    //     system_event = get_system_event(); // 非阻塞获取事件
+    //     switch (current_state)
+    //     { // 状态分发
+    //     case STATE_MENU:
+    //         handle_menu_state(system_event);
+    //         OLED_Refresh();
+    //         break;
+    //     case STATE_GAME:
+    //         handle_game_state(system_event);
+    //         Music_Update(); // 直接在状态中处理音乐
+    //         break;
+    //     case STATE_SETTING:
+    //         handle_setting_state(system_event);
+    //         break;
+    //     case STATE_SCORE:
+    //         handle_score_state(system_event);
+    //         break;
+    //     case STATE_PLAYING:
+    //         handle_play_state(system_event);
+    //         break;
+    //     case STATE_PAUSED:
+    //         handle_play_state(system_event);
+    //         break;
+    //     }
+    //     Key_Scan_Delay(10); // 替代原task1的10ms扫描
+    // }
+// }
 
-            // 根据当前系统状态处理按键输入
-            switch (g_state.current_state)
-            {
-            case SYSTEM_MENU:
-                // 如果当前状态处于菜单状态，则处理菜单输入
-                Menu_HandleInput(key);
-                break;
-            case SYSTEM_GAMEPLAY:
-                // 如果当前处于游戏界面，则处理游戏输入
-                Game_HandleInput(key);
-                break;
-            case SYSTEM_SCORE_REVIEW:
-                if (key == KEY_CONFIRM)
-                {
-                    // 如果当前处于游玩结束状态 应该进入游玩结果展示界面，并且等待玩家确认再返回主菜单
-                    Menu_TransitionTo(MENU_MAIN);        // 先更新菜单状态
-                    SystemState_Transition(SYSTEM_MENU); // 在更新系统状态
-                }
-                break;
-            default:
-                break;
-            }
-        }
-    }
-}
+// void task_init(void) _task_ 0
+// {
+//     OLED_ShowString(0, 0, "Init OK!", 16);
+//     OLED_Refresh(); // 必须调用刷新函数
+//     Delay(1000);
+//     P2 = 0xFF;
+//     OLED_Init();
+//     OLED_Clear();
+//     os_wait(K_IVL, 100, 0);
 
-// 音乐播放任务
-void Task_Audio(void) _task_ TASK_AUDIO
-{
-    while (1)
-    {
-        PlayMusic(); // 播放音乐
-        os_wait1(0); // 暂停任务，等待系统状态更新
-    }
-}
+//     os_create_task(1); // 键盘扫描任务
+//     os_create_task(2); // 状态机任务
+//     // os_create_task(3); // 显示任务
+//     os_delete_task(0); // 删除初始化任务
+// }
 
-void Task_Game(void) _task_ TASK_GAME
-{
-    while (1)
-    {
-        // 根据系统状态设置信号标志
-        switch (g_state.current_state)
-        {
-        case SYSTEM_MENU:
-            // 如果当前状态处于菜单状态，则刷新OLED显示的缓冲区
-            signal_flags |= SIG_OLED_REFRESH; // 只要oled有刷新信号，或者当前为菜单状态，就刷新oled
-            isr_send_signal(TASK_OLED);       // 发送oled任务信号
-            break;
-        case SYSTEM_GAMEPLAY:
-            // 如果当前状态处于游戏状态，则发送游戏更新信号
-            signal_flags |= SIG_GAME_UPDATE; // 只要游戏有更新信号，就更新游戏
-            isr_send_signal(TASK_GAME);      // 发送游戏更新信号
-            break;
-        case SYSTEM_SCORE_REVIEW:
-            // 如果当前处于成绩回顾状态，则发送oled刷新信号
-            signal_flags |= SIG_OLED_REFRESH; // 只要有成绩更新，就刷新oled
-            isr_send_signal(TASK_OLED);
-            break;
-        default:
-            // 如果不处于上面的三种状态中的任何一个，则什么也不做 直接跳过
-            break;
-        }
+// void task_key(void) _task_ 1
+// {
+//     while (1)
+//     {
+//         system_event = get_system_event();
 
-        // 按键输入信号
-        if (Key_Scan())
-        {
-            signal_flags |= SIG_INPUT;   // 设置按键输入信号    如果当前SIG_INPUT信号为1，则不发送信号 否则发送信号
-            isr_send_signal(TASK_INPUT); // 发送任务信号
-        }
+//         if (system_event != EVENT_NONE)
+//         {
+//             os_evt_set(0x0001, 2); // 通知状态机任务
+//             os_evt_set(0x0001, 3); // 通知显示任务
+//         }
 
-        Delay(10); // 主循环延时，避免过高的 CPU 占用
-    }
-}
+//         os_wait(K_IVL, 10, 0);
+//     }
+// }
 
-// 主函数
-void init_task(void) _task_ 0
-{
-    System_Init(); // 系统初始化
+// void task_state_machine(void) _task_ 2
+// {
+//     while (1)
+//     {
+//         OLED_Refresh();
+//         os_wait(K_IVL, 50, 0);
+//         os_evt_wait_or(0x0001, 0xFFFF); // 等待事件
 
-    // 创建任务
-    os_create_task(TASK_OLED);  // OLED 刷新任务
-    os_create_task(TASK_GAME);  // 游戏更新任务
-    os_create_task(TASK_INPUT); // 按键输入任务
-    os_create_task(TASK_AUDIO); // 音乐播放任务
+//         switch (current_state)
+//         {
+//         case STATE_MENU:
+//             handle_menu_state(system_event);
+//             break;
+//         case STATE_GAME:
+//             handle_game_state(system_event);
+//             break;
+//         case STATE_SETTING:
+//             handle_setting_state(system_event);
+//             break;
+//         case STATE_SCORE:
+//             handle_score_state(system_event);
+//             break;
+//         case STATE_PLAYING:
+//             handle_play_state(system_event);
+//             break;
+//         case STATE_PAUSED:
+//             handle_play_state(system_event);
+//             break;
+//         }
+//     }
+// }
 
-    // 启动系统状态机
-    SystemState_Transition(SYSTEM_BOOTING);
+// 任务板
 
-    os_delete_task(0); // 删除初始化任务
-}
+// void task_display(void) _task_ 3
+// {
+//     while (1)
+//     {
+//         OLED_Refresh(); // 调用底层刷新函数
+
+//         switch (current_state)
+//         {
+//         case STATE_MENU:
+//             //draw_menu(); // 分离显示逻辑与状态处理
+//             break;
+//         case STATE_GAME:
+//             //draw_game();
+//             break;
+//         case STATE_SETTING:
+//             //draw_setting();
+//             break;
+//         case STATE_SCORE:
+//             //draw_score();
+//             break;
+//         default:
+//             OLED_Clear();
+//             //OLED_ShowString(0,0,"STATE ERROR",16);
+//         }
+//         os_wait(K_IVL, 100, 0); // 100ms刷新周期(10Hz)
+//     }
+// }
