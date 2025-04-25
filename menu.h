@@ -39,12 +39,14 @@ typedef struct Menu_State
 
 extern Menu_State menu; /* 全局菜单状态机 */
 
-/* 系统配置 */
+
 #define MENU_REFRESH_INTERVAL 200 /* 刷新间隔 */
 #define MENU_ITEMS_PER_PAGE 4     /* 每页最大项数 */
 #define MAX_SONG_NUM 3            /* 最大歌曲数量 */
-
-/* 全局访问接口 */
+#define MENU_TITLE_Y 0    // 标题在第0页
+#define MENU_ITEM_START_Y 1 // 菜单项从第1页开始
+#define CHAR_WIDTH 6      // 8号字宽度
+#define LINE_HEIGHT 1     // 行间距（页单位）
 extern const Menu_State *GetMenuState(void);
 extern uint8_t GetCurrentSongID(void);
 

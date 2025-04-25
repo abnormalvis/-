@@ -1,4 +1,3 @@
-/* Timer0.c */
 #include <REG52.H>
 #include "Timer0.h"
 #include "stdint.h"

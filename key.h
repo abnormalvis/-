@@ -2,21 +2,22 @@
 #define __KEY_H
 #include <reg52.h>
 #include "stdint.h"
-sbit KEY1 = P1 ^ 0;
-sbit KEY2 = P1 ^ 1;
-sbit KEY3 = P1 ^ 2;
-sbit KEY4 = P1 ^ 3;
-sbit KEY5 = P1 ^ 4; // 暂停键
-sbit KEY6 = P1 ^ 5; // 退出按键
+// P3.0 (KEY_PLAY)  -> 游玩键（绿色按钮）
+// P3.1 (KEY_PAUSE) -> 暂停键（红色按钮）
+// P3.2 (KEY_DOWN)  -> 菜单下键
 #define KEY_TRACK1 1
-#define KEY_TRACK2 2
-#define KEY_TRACK3 3
-#define KEY_TRACK4 4
+#define KEY1 P3^0
+#define KEY2 P3^1
+#define KEY3 P3^2
+#define KEY4 P3^3
+// #define KEY_TRACK2 2
+// #define KEY_TRACK3 3
+// #define KEY_TRACK4 4
 #define KEY_STOP 5
-#define KEY_EXIT 6
-#define KEY_CONFIRM 3
+#define KEY_PREV    1  // KEY1 上/暂停
+#define KEY_CONFIRM 2  // KEY2 确认/游玩
+#define KEY_NEXT    3  // KEY3 下
 
-extern volatile bit KeyLock; // 按键锁标志
 extern uint8_t KeyValue; // 用来存放读取到的键值
 
 uint8_t Key_Scan(void);

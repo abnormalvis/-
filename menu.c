@@ -96,11 +96,9 @@ static void DrawMenuPage(void)
     // 读取当前页面状态
     const unsigned char current_state = menu.current_page;
     uint8_t len;
-
-    // 获取当前页面的标题长度
     len = strlen(menu_config[current_state].title);
-    OLED_ShowString((128 - len * 8) / 2, 0, menu_config[current_state].title);
-
+    // 获取当前页面的标题长度
+    OLED_ShowString((128 - len * 8) / 2, 0, menu_config[current_state].title, 8);
     /* 显示菜单项 */
     for (i = 0; i < menu_config[current_state].item_count; i++)
     {
@@ -109,18 +107,17 @@ static void DrawMenuPage(void)
         /* 选中指示   原本想用反色显式 感觉又太麻烦了 不过反色显示可能会好看一点*/
         if (i == menu.selected_item)
         { // 用箭头提示选
-            OLED_ShowString(4, y_pos, ">");
+            OLED_ShowString(4, y_pos, ">", 16);
         }
         if (current_state == MENU_SETTINGS && i == 0)
         {
-            char lang_str[16];
             // sprintf(char *, const char *, ...)
-            sprintf(lang_str, "Language:%s", menu.language == 1 ? "EN" : "CN");
-            OLED_ShowString(12, y_pos, lang_str);
+            OLED_ShowString(12, y_pos, "Language", 8);
+            OLED_ShowString(80, y_pos, (menu.language == 1) ? "[EN]" : "[CN]", 8);
         }
         else
         { // 显示菜单项
-            OLED_ShowString(12, y_pos, menu_config[current_state].items[i]);
+            OLED_ShowString(12, y_pos, menu_config[current_state].items[i], 8);
         }
     }
 
@@ -130,37 +127,24 @@ static void DrawMenuPage(void)
 /* 处理按键输入 */
 static void HandleInput(unsigned char key)
 {
-    switch (key)
-    { /* 键值处理 */
-    case KEY_TRACK1:
-        if (menu.selected_item > 0)
-        { /* 上移选中项 */
+    switch (key) {
+    case KEY_PREV:  // 上移选项
+        if (menu.selected_item > 0) {
             menu.selected_item--;
         }
         break;
 
-    case KEY_TRACK2:
-        if (menu.selected_item < menu_config[menu.current_page].item_count - 1)
-        { /* 下移选中项 */
+    case KEY_NEXT:  // 下移选项
+        if (menu.selected_item < menu_config[menu.current_page].item_count - 1) {
             menu.selected_item++;
         }
         break;
 
-    case KEY_TRACK3:
-        /* 选择当前项 */
+    case KEY_CONFIRM:  // 确认选择
         HandleSelection();
-        break;
-
-    case KEY_TRACK4:
-        /* 返回上一级菜单 */
-        if (menu.current_page != MENU_MAIN)
-        {
-            TransitionState(menu_config[menu.current_page].parent_state);
-        }
         break;
     }
 }
-
 /* 处理菜单选择 */
 static void HandleSelection(void)
 {
