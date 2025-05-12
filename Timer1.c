@@ -1,7 +1,5 @@
 #include <REG52.H>  // 确保包含SFR定义
 #include "Timer1.h"
-#include "Beep.h"
-#include "Musictable.h"
 
 #ifndef _TIMER1_H_
 #define _TIMER1_H_

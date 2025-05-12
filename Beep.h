@@ -1,7 +1,7 @@
 #ifndef __BEEP_H__
 #define __BEEP_H__
 #include <REG52.H>
-sbit BUZZER = P2 ^ 5;
+sbit BUZZER = P2^5;
 #include "Delay.h"
 #include "Timer1.h"
 #include "Musictable.h"
@@ -56,7 +56,7 @@ extern unsigned char SongSelect;       // 歌曲选择
 void PlayMusic(void);                         // 播放音乐
 static void playNote(unsigned char segIndex); // 播放音符
 static void handleKeyEvents(void);            // 处理按键事件
-void CheckAndInitStorage(void);               // 检查并初始化存储器
+//void CheckAndInitStorage(void);               // 检查并初始化存储器
 void LoadMusicSegment(uint32_t addr);         // 加载音乐分段
 uint8_t GetValidSegments(const Song *song);
 static void HandlePlayingState(void);

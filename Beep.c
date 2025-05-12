@@ -109,15 +109,17 @@ void BEEP_Off(void)
 
 void LoadMusicSegment(uint32_t addr)
 {
-    uint8_t tmp_buf, ea_save; // 所有变量声明在块开头
-    tmp_buf = !current_buf;
-    AT24C1024_Read(addr, MusicBuffer[tmp_buf], BUFFER_SIZE);
+    // uint8_t tmp_buf, ea_save; 
+    // tmp_buf = !current_buf;
+    // AT24C1024_Read(addr, MusicBuffer[tmp_buf], BUFFER_SIZE);
 
-    // 临界区保护
-    ea_save = EA;
-    EA = 0;
-    current_buf = tmp_buf;
-    EA = ea_save;
+    //
+    // ea_save = EA;
+    // EA = 0;
+    // current_buf = tmp_buf;
+    // EA = ea_save;
+    const uint8_t* music_data = Musictable_GetSongData(SongSelect);
+    memcpy(MusicBuffer[tmp_buf], music_data, BUFFER_SIZE);
 }
 
 uint8_t GetValidSegments(const Song *song)
@@ -133,33 +135,33 @@ uint8_t GetValidSegments(const Song *song)
 // 检查并且初始化存储器
 void CheckAndInitStorage()
 {
-    uint8_t i, seg;
-    uint32_t addr;
-    const uint8_t sig[4] = {0xAA, 0x55, 0xAA, 0x55};
+    // uint8_t i, seg;
+    // uint32_t addr;
+    // const uint8_t sig[4] = {0xAA, 0x55, 0xAA, 0x55};
 
-    if (!CheckDataValid())
-    {                                   // 先检测数据的有效性
-        EA = 0;                         // 关中断
-        for (i = 0; i < MAX_SONGS; i++) // 遍历曲库
-        {
-            const Song *song = &Songs[i];
-            for (seg = 0; seg < GetValidSegments(song); seg++)
-            {
-                // 遍历曲库的每个片段
-                if (song->segmentSizes[seg] == 0)
-                {
-                    break;
-                }
-                // 写入曲库首地址
-                addr = 0;
-                AT24C1024_Write(addr, (uint8_t *)song->MusicSegments[seg], song->segmentSizes[seg]);
-                addr += song->segmentSizes[seg]; // 地址偏移
-            }
-        }
-        // 写入校验标记
-        AT24C1024_Write(AT24C1024_SIZE - 4, sig, 4);
-        EA = 1; // 开中断
-    }
+    // if (!CheckDataValid())
+    // {                                   // 先检测数据的有效性
+    //     EA = 0;                         // 关中断
+    //     for (i = 0; i < MAX_SONGS; i++) // 遍历曲库
+    //     {
+    //         const Song *song = &Songs[i];
+    //         for (seg = 0; seg < GetValidSegments(song); seg++)
+    //         {
+    //             // 遍历曲库的每个片段
+    //             if (song->segmentSizes[seg] == 0)
+    //             {
+    //                 break;
+    //             }
+    //             // 写入曲库首地址
+    //             addr = 0;
+    //             AT24C1024_Write(addr, (uint8_t *)song->MusicSegments[seg], song->segmentSizes[seg]);
+    //             addr += song->segmentSizes[seg]; // 地址偏移
+    //         }
+    //     }
+    //     // 写入校验标记
+    //     AT24C1024_Write(AT24C1024_SIZE - 4, sig, 4);
+    //     EA = 1; // 开中断
+    // }
 }
 
 // 播放控制

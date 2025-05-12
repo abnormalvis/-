@@ -4,6 +4,11 @@
             "path": "."
         }
     ],
-    "settings": {},
+    "settings": {
+        "files.associations": {
+            "game.h": "c",
+            "systemstate.h": "c"
+        }
+    },
     "extensions": {}
 }

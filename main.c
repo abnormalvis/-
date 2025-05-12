@@ -55,14 +55,14 @@ void Menu_HandleInput(unsigned char key)
                 break;
             case 2: // 帮助
                 OLED_Clear();
-                OLED_ShowString(0, 0, "Help: Use keys");
-                OLED_ShowString(0, 2, "to navigate.");
+                OLED_ShowString(0, 0, "Help: Use keys", 8);
+                OLED_ShowString(0, 2, "to navigate and play!.", 8);
                 OLED_Refresh();
                 Delay(2000); // 显示帮助信息2秒
                 break;
             case 3: // 退出
                 OLED_Clear();
-                OLED_ShowString(0, 0, "Exiting...");
+                OLED_ShowString(0, 0, "Exiting...", 8);
                 OLED_Refresh();
                 Delay(1000);
                 SystemState_Transition(SYSTEM_MENU);
@@ -124,7 +124,7 @@ void System_Init(void)
     Timer0Init();                     // 初始化定时器0（系统时钟）
     Timer1Init();                     // 初始化定时器1（音乐播放）
     OLED_Init();                      // 初始化OLED显示屏
-    AT24C1024_Write(0x0000, NULL, 0); // 初始化存储芯片（如有必要）
+    //AT24C1024_Write(0x0000, NULL, 0); // 初始化存储
     Menu_Init();                      // 初始化菜单
     Game_Init();                      // 初始化游戏
     EA = 1;                           // 启用中断
@@ -139,6 +139,7 @@ void Task_OLED(void) _task_ TASK_OLED
         if (signal_flags & SIG_OLED_REFRESH)
         {                                      // 如果有信号标志，刷新 OLED 显示缓冲区
             signal_flags &= ~SIG_OLED_REFRESH; // 清除信号标志  将signal_flags与oled刷新信号取反的结果作与运算 将信号标志位清零
+            
             Menu_Display();                    // 刷新菜单显示
             OLED_Refresh();                    // 刷新 OLED 显示缓冲区
         }

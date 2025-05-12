@@ -13,7 +13,6 @@
 #include "menu.h"
 #include "stdint.h"
 #include "stdbool.h"
-#include "AT24C1024B.h"
 
 // 硬件相关常量
 #define JUDGE_LINE_X 31     // 判定线X坐标
@@ -26,8 +25,8 @@ extern volatile bool score_updated; // 分数更新标志
 #define MAX_NOTES 10                // 最大音符数量
 #define NOTE_WIDTH 8    // 音符位图宽度
 #define NOTE_HEIGHT 8   // 音符位图高度
-
-
+extern uint32_t high_score;
+extern uint8_t xdata current_music_buf[1024];
 typedef struct
 {
     uint32_t start_time; // 音符开始时间
